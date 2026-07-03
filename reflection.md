@@ -4,13 +4,56 @@
 
 **a. Initial design**
 
+Three core tasks a user should be able to perform are tracking pet care tasks, considering constraints in the schedule, and producing + explaining a daily plan.
+
 - Briefly describe your initial UML design.
+    - My initial UML design consists of four classes. These classes include the Pet Owner, the Pet themselves, the Assistant/Scheduler, and the Task (that belongs to the Pet). We have the following relationships:
+        - An owner can own multiple pets.
+        - A pet can have multiple tasks.
+        - An owner requests a plan from the Scheduler.
+        - The Scheduler, schedules the Task (for the pet).
+    - The Owner class has a list of pets, as well as availability and a list of preferences for the scheduler. They can request a plan to the Scheduler to take in.
+    - A pet has multiple physical characteristics, as well as its own accomodations and an Owner as well.
+    - A task is for a Pet object. It has a name of the task, the duration of it, and a priority string, ranking its priority over other tasks (low, medium, high).
+    - A scheduler only does work; it generates the plan based on the tasks given from the owner, and their availability as well.
+
 - What classes did you include, and what responsibilities did you assign to each?
+    - **Pet Owner**
+        - Attributes:
+            - Name (String)
+            - Pet(s) (List of Pet object)
+            - Available time in minutes (int)
+            - Preferences (List of strings)
+        - Methods: 
+            - Schedule assistant
+    - **Pet**
+        - Attributes:
+            - Name (String)
+            - Owner (String)
+            - Tasks (list of task objects)
+            - Age (Int)
+            - Breed (String)
+            - Sex/Gender (String)
+            - Weight (float/double) (kg or lbs?)
+            - Accomodations (list of strings)
+        - Methods:
+            - None
+    - **Assistant/Scheduler**
+        - Methods:
+            - Produces the daily plan (puts everything all together for tasks and pet owner needs)
+    - **Task**
+        - Attributes:
+            - Name of task (string)
+            - Time it takes to do/duration, in minutes (int)
+            - Priority (Can be an int, string, or even a boolean)
+
 
 **b. Design changes**
 
 - Did your design change during implementation?
+    - Yes, my design changed slightly during implementation.
 - If yes, describe at least one change and why you made it.
+    - I added a back-reference from each Task to its Pet so a scheduled task knows which pet it belongs to, and I replaced the free-form string priority with a Priority enum so tasks sort reliably by importance. I also wired the Owner directly to the Scheduler so an owner can gather all its pets' tasks and request a daily plan.
 
 ---
 
