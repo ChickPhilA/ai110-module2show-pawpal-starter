@@ -1,11 +1,12 @@
 classDiagram
-    %% PawPal+ initial design — keep this updated as your implementation evolves.
+    %% PawPal+ design — kept in sync with pawpal_system.py.
 
     class Owner {
         +str name
         +list~Pet~ pets
         +int available_minutes
         +list~str~ preferences
+        +Scheduler scheduler
         +request_plan() list~Task~
     }
 
@@ -27,10 +28,20 @@ classDiagram
     class Task {
         +str name
         +int duration_minutes
-        +str priority
+        +Priority priority
+        +Pet pet
+    }
+
+    class Priority {
+        <<enumeration>>
+        LOW
+        MEDIUM
+        HIGH
     }
 
     Owner "1" --> "*" Pet : owns
     Pet "1" --> "*" Task : has
+    Task --> Pet : belongs to
+    Task --> Priority : has
     Owner --> Scheduler : requests plan from
     Scheduler --> Task : schedules
