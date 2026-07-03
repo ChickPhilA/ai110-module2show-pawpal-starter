@@ -7,6 +7,8 @@ classDiagram
         +int available_minutes
         +list~str~ preferences
         +Scheduler scheduler
+        +add_pet(pet) Pet
+        +get_all_tasks(include_completed) list~Task~
         +request_plan() list~Task~
     }
 
@@ -19,17 +21,24 @@ classDiagram
         +str sex
         +float weight
         +list~str~ accommodations
+        +add_task(task) Task
+        +pending_tasks() list~Task~
     }
 
     class Scheduler {
         +generate_plan(tasks, available_minutes) list~Task~
+        +sort_tasks(tasks) list~Task~
     }
 
     class Task {
         +str name
         +int duration_minutes
         +Priority priority
+        +Frequency frequency
+        +bool completed
         +Pet pet
+        +mark_done() void
+        +mark_undone() void
     }
 
     class Priority {
@@ -39,9 +48,17 @@ classDiagram
         HIGH
     }
 
+    class Frequency {
+        <<enumeration>>
+        ONCE
+        DAILY
+        WEEKLY
+    }
+
     Owner "1" --> "*" Pet : owns
     Pet "1" --> "*" Task : has
     Task --> Pet : belongs to
     Task --> Priority : has
+    Task --> Frequency : has
     Owner --> Scheduler : requests plan from
     Scheduler --> Task : schedules
