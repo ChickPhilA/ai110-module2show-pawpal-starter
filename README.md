@@ -69,10 +69,10 @@ Today's Schedule for Alex
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
-pytest --cov
+python -m pytest --cov
 ```
 
 Sample test output:
@@ -138,6 +138,53 @@ with the sort methods, e.g. `sort_by_time(filter_by_status(filter_by_pet(tasks,
 - **`Task._next_occurrence()`** builds that copy, advancing the `due_date` with
   `datetime.timedelta` (`DAILY` → +1 day, `WEEKLY` → +7 days), which handles
   month and year rollovers accurately.
+
+## Testing PawPal+
+
+Run the full test suite from the project root:
+
+```bash
+python -m pytest
+```
+
+The suite (`tests/test_pawpal.py`) covers the core scheduling logic:
+
+- **Task completion & recurrence** — completing a `DAILY` task spawns a fresh
+  copy due the next day, `WEEKLY` advances 7 days, `ONCE` tasks don't
+  regenerate, and date rollovers (including leap years) are handled correctly.
+- **Sorting** — chronological order by start time (even for non-zero-padded
+  times like `"9:00"`), plus priority-then-duration ordering without mutating
+  the input.
+- **Scheduling & budget** — `generate_plan()` includes tasks that fit the time
+  budget (including one exactly equal to it), skips oversized tasks while still
+  fitting smaller ones, and prioritizes high-priority tasks under a tight budget.
+- **Filtering** — case-insensitive filtering by pet and by completion status.
+- **Conflict detection** — flags overlapping tasks on the same day, treats
+  back-to-back tasks as non-conflicting, ignores different days, spans pets, and
+  skips unparseable times.
+- **Edge cases** — pets with no tasks, owners with no pets, and zero-minute
+  budgets.
+
+Sample output from a successful run:
+
+```
+============================= test session starts ==============================
+platform darwin -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/chickphila/Desktop/CodePath/Summer2026/ai-110/projects/project2/ai110-module2show-pawpal-starter
+plugins: anyio-4.14.1
+collected 33 items
+
+tests/test_pawpal.py .................................                   [100%]
+
+============================== 33 passed in 0.03s ==============================
+```
+
+**Confidence Level:** ★★★★☆ (4/5) — The core scheduling logic (recurrence,
+sorting, budget planning, and conflict detection) is thoroughly tested and
+reliable. The remaining point is held back by two gaps: input validation
+(e.g. negative durations or malformed times) and UI-layer coverage
+(`app.py` / `main.py`), which are not yet exercised by the suite.
+
 
 ## 📸 Demo Walkthrough
 
