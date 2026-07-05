@@ -62,13 +62,23 @@ Three core tasks a user should be able to perform are tracking pet care tasks, c
 **a. Constraints and priorities**
 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
+    - Available time budget (available_minutes)
+    - Task duration
+    - Start time
+    - Priority
+    - Completion status (pending vs. done)
+    - Frequency / due date (recurring tasks)
+    - Time conflicts (overlapping tasks)
+    - Pet ownership
 - How did you decide which constraints mattered most?
+    - I prioritized constraints by what most directly affects a pet's wellbeing and a realistic daily routine, so priority and available time came first (making sure high-importance tasks fit the owner's schedule), followed by time-based ordering and conflict detection to keep the day physically doable. Recurring tasks and pet/status filters mattered next as practical conveniences that keep the plan accurate day to day without driving the core scheduling decisions.
 
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
+    - My Scheduler uses an O(n²) pairwise scan in detect_conflicts, trading raw performance for simple, readable code, which is a fine trade at a pet owner's task counts but one that wouldn't scale to hundreds of tasks. More broadly, my scheduler favors straightforward greedy/brute force logic over provably optimal algorithms (like a knapsack based planner), keeping the code easy to follow at the cost of not always producing the mathematically best schedule.
 - Why is that tradeoff reasonable for this scenario?
-
+    - That tradeoff is reasonable because a pet owner realistically manages only a handful of tasks per day, so the O(n²) scan and greedy logic run instantly and the performance cost never actually materializes. Prioritizing readable, easy to maintain code over algorithmic optimization is the right call here since the real goal is a clear, correct daily plan rather than squeezing out efficiency that this small scale will never need.
 ---
 
 ## 3. AI Collaboration

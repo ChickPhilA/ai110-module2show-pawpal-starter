@@ -100,21 +100,27 @@ else:
         )
         st.success(f"Added '{task_title}' for {selected_pet_name}!")
 
-    # Display current tasks by reading straight from the objects.
+    # Display current tasks by reading straight from the objects. Each pending
+    # task gets a "Done" button; completing a DAILY/WEEKLY task automatically
+    # spawns its next occurrence (with an advanced due date).
     all_tasks = owner.get_all_tasks(include_completed=True)
     if all_tasks:
         st.write("Current tasks:")
-        st.table(
-            [
-                {
-                    "pet": task.pet.name,
-                    "task": task.name,
-                    "duration_minutes": task.duration_minutes,
-                    "priority": task.priority.name.lower(),
-                }
-                for task in all_tasks
-            ]
-        )
+        for index, task in enumerate(all_tasks):
+            info_col, action_col = st.columns([4, 1])
+            with info_col:
+                mark = "~~" if task.completed else ""
+                st.markdown(
+                    f"{mark}**{task.name}** ({task.duration_minutes} min) "
+                    f"[{task.priority.name.lower()}] for {task.pet.name} "
+                    f"- due {task.due_date} @ {task.start_time}{mark}"
+                )
+            with action_col:
+                if task.completed:
+                    st.caption("✅ done")
+                elif st.button("Done", key=f"done_{index}"):
+                    task.mark_complete()
+                    st.rerun()
     else:
         st.info("No tasks yet. Add one above.")
 
