@@ -12,6 +12,30 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
+## ✨ Features
+
+The scheduling algorithms below are implemented in [`pawpal_system.py`](pawpal_system.py)
+and surfaced in the Streamlit UI. See [Smarter Scheduling](#-smarter-scheduling)
+for the full logic behind each.
+
+- **Priority-based day planning** — a greedy planner sorts tasks by priority
+  (then shorter duration) and packs as many as fit a time budget
+  (`Scheduler.generate_plan()`).
+- **Sorting by time** — orders tasks chronologically by their `"HH:MM"` start
+  time, tolerating non-zero-padded values (`Scheduler.sort_by_time()`).
+- **Sorting by priority** — high priority first, ties broken by shorter duration
+  (`Scheduler.sort_tasks()`).
+- **Filtering** — narrow tasks to a single pet (case-insensitive) or to pending
+  vs. completed (`Scheduler.filter_by_pet()`, `Scheduler.filter_by_status()`).
+- **Conflict warnings** — flags any two tasks whose time windows overlap on the
+  same day, as human-readable messages
+  (`Scheduler.detect_conflicts()`, `Scheduler.conflict_warnings()`).
+- **Daily & weekly recurrence** — completing a recurring task auto-spawns its
+  next occurrence with an advanced due date
+  (`Task.mark_complete()`, `Task._next_occurrence()`).
+- **Automatic end times** — each task computes its end time from
+  `start_time + duration`, wrapping safely around midnight (`Task.end_time`).
+
 ## What you will build
 
 Your final app should:
@@ -78,7 +102,7 @@ python -m pytest --cov
 Sample test output:
 
 ```
-# Paste your pytest output here
+(Check the Testing PawPal+ category for a sample test with more details on the logic it runs and covers.)
 ```
 
 ## 📐 Smarter Scheduling
@@ -88,10 +112,12 @@ implemented in `pawpal_system.py` and named below.
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
+| Day planning | `Scheduler.generate_plan()` | Greedily packs highest-priority tasks that fit the available time budget |
 | Task sorting | `Scheduler.sort_by_time()`, `Scheduler.sort_tasks()` | Chronological order by `"HH:MM"` start time, or by priority then duration |
 | Filtering | `Scheduler.filter_by_pet()`, `Scheduler.filter_by_status()` | Narrow tasks to one pet or to pending vs. completed |
 | Conflict detection | `Scheduler.detect_conflicts()`, `Scheduler.conflict_warnings()` | Flags tasks whose time windows overlap on the same day |
 | Recurring tasks | `Task.mark_complete()`, `Task._next_occurrence()` | Completing a daily/weekly task spawns its next occurrence |
+| End-time calc | `Task.end_time` | Derives end time from `start_time + duration`, wrapping around midnight |
 
 ### Sorting behavior
 
@@ -188,12 +214,103 @@ reliable. The remaining point is held back by two gaps: input validation
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### What you can do in the app
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The Streamlit UI (`app.py`) is organized top to bottom around a single owner:
+
+- **Set the owner.** Edit the owner's name.
+- **Add pets.** Give a name and species; added pets appear in a running list.
+- **Add tasks.** Pick the pet, then enter a title, duration, priority, **start
+  time**, and **due date**. Each task's end time is derived automatically.
+- **View tasks in a table.** A sorted `st.table` shows every task's status,
+  pet, priority, time window, duration, and due date.
+- **Filter.** Narrow the table to one pet or to pending / done tasks.
+- **See conflict warnings.** Overlapping tasks are flagged inline above the
+  table.
+- **Mark tasks done.** A picker completes a task, and recurring tasks
+  automatically reappear as their next occurrence.
+
+### Example workflow
+
+1. Enter the owner's name (e.g. *Alex*).
+2. Add a pet — *Biscuit*, a dog.
+3. Schedule a task for Biscuit: *Morning walk*, 30 min, **high** priority, start
+   **08:00**, due today. The table shows it as `08:00–08:30`.
+4. Add a second pet, *Mochi*, and a task *Give medication* at **08:15** — which
+   overlaps the walk.
+5. A ⚠️ **conflict warning** appears above the table, since one owner can't do
+   two overlapping tasks at once.
+6. Filter the table to **Mochi** to see just her tasks, or to **Pending** to
+   hide finished ones.
+7. Mark *Morning walk* done. Because it's a daily task, PawPal+ instantly adds
+   tomorrow's *Morning walk* as a fresh pending task.
+
+### Scheduler behaviors on display
+
+- **Sorting by time.** Tasks entered out of order are shown chronologically
+  (`Scheduler.sort_by_time()`).
+- **Filtering.** By pet and by completion status
+  (`Scheduler.filter_by_pet()`, `Scheduler.filter_by_status()`).
+- **Conflict warnings.** Overlapping same-day windows are flagged
+  (`Scheduler.conflict_warnings()`).
+- **Recurrence.** Completing a daily/weekly task spawns its next occurrence
+  (`Task.mark_complete()`).
+
+### Sample CLI output (`python main.py`)
+
+The `main.py` script demonstrates the same logic in the terminal. It builds a
+sample owner (Alex) with two pets, adds tasks **out of time order**, marks
+*Breakfast* complete (which spawns its next daily occurrence, so it appears
+twice: one *done*, one fresh *pending*), and schedules *Give medication* at
+08:15 to deliberately overlap Biscuit's 08:00 walk:
+
+```text
+============================================
+All tasks (as entered, unsorted)
+============================================
+  17:30  Enrichment play (45 min) [LOW] for Biscuit - pending
+  08:00  Morning walk (30 min) [HIGH] for Biscuit - pending
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - done
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - pending
+  08:15  Give medication (5 min) [HIGH] for Mochi - pending
+  12:00  Litter box cleaning (15 min) [MEDIUM] for Mochi - pending
+
+============================================
+All tasks sorted by time
+============================================
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - done
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - pending
+  08:00  Morning walk (30 min) [HIGH] for Biscuit - pending
+  08:15  Give medication (5 min) [HIGH] for Mochi - pending
+  12:00  Litter box cleaning (15 min) [MEDIUM] for Mochi - pending
+  17:30  Enrichment play (45 min) [LOW] for Biscuit - pending
+
+============================================
+Biscuit's tasks sorted by time
+============================================
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - done
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - pending
+  08:00  Morning walk (30 min) [HIGH] for Biscuit - pending
+  17:30  Enrichment play (45 min) [LOW] for Biscuit - pending
+
+============================================
+Pending tasks sorted by time
+============================================
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - pending
+  08:00  Morning walk (30 min) [HIGH] for Biscuit - pending
+  08:15  Give medication (5 min) [HIGH] for Mochi - pending
+  12:00  Litter box cleaning (15 min) [MEDIUM] for Mochi - pending
+  17:30  Enrichment play (45 min) [LOW] for Biscuit - pending
+
+============================================
+Completed tasks
+============================================
+  07:00  Breakfast (10 min) [HIGH] for Biscuit - done
+
+============================================
+Schedule conflicts
+============================================
+  ⚠️ Conflict on 2026-07-05: 'Morning walk' at 08:00 (Biscuit) overlaps 'Give medication' at 08:15 (Mochi).
+```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

@@ -86,12 +86,16 @@ Three core tasks a user should be able to perform are tracking pet care tasks, c
 **a. How you used AI**
 
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
+    - The most effective features were attaching my own files with the @ reference so the assistant reasoned about my real code instead of guessing, and having it run main.py directly to capture true output rather than inventing sample results. Inline edits that I could review one change at a time also let me stay in control of every line that entered my scheduler.
 - What kinds of prompts or questions were most helpful?
+    - Prompts or questions that were most helpful were inquiring about possible assumptions that the agent could have made while refactoring or generating any body of code, to ensure clarity for edge cases and prospective bugs that could be present in the program. 
 
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
+    - One moment where I didn't accept an AI suggestion as-is was the AI went ahead in writing code for future functions that we were to implement later on in the application, specifically in pawpal_system.py creating a function for conflict handling. I wanted to take each implementation one step at a time, for validation purposes first to ensure quality of the each component.
 - How did you evaluate or verify what the AI suggested?
+    - In order to verify my agent's suggestion(s), I had to check for its reasoning and justifications in why what it suggested was correct, in terms of logic, ethics, optimization, and readibility. 
 
 ---
 
@@ -100,12 +104,16 @@ Three core tasks a user should be able to perform are tracking pet care tasks, c
 **a. What you tested**
 
 - What behaviors did you test?
+    - I tested task state (starts incomplete, marking done/undone), recurrence (daily, weekly, once, leap year rollovers), pet and owner queries (pending tasks, flattening across pets, empty cases), sorting (by priority and by clock time), budget planning (fitting, skipping oversized, tight budget priority), and filtering plus conflict detection (by pet, by status, and overlapping times).
 - Why were these tests important?
+    - They lock down the exact rules a wrong schedule would break, like a recurring task vanishing or a low priority task stealing a slot, and they guard the tricky edge cases so I can refactor later and trust the logic still works.
 
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
+    - If I were to rank from a scale on 1-5, with 1 being very faulty to 5 being flawless, I would rank it a 4.
 - What edge cases would you test next if you had more time?
+    - Edge cases I would test next time if I had more time were cases where there was an invalid time that doesn't meet the HH:MM format. I would also test invalid or negative durations next time, such as a task with 0 or negative duration_minutes, since there is no validation for it.
 
 ---
 
@@ -114,11 +122,15 @@ Three core tasks a user should be able to perform are tracking pet care tasks, c
 **a. What went well**
 
 - What part of this project are you most satisfied with?
+    - I am most satisfied with my conflict detection logic, since it catches overlapping tasks even across different pets and handles tricky cases like back to back times and bad input without crashing.
+
 
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
+    - If I had another iteration, I would add input validation so bad data like negative durations or malformed times is caught early, and I would let the Streamlit UI actually call generate_plan so the app shows a real daily plan, not just the task list.
 
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+    - One important thing I learned is that designing the classes and relationships up front paid off, since my original UML held through the whole build and I only deepened behavior instead of restructuring. Working with AI taught me to stay in control and review each suggestion, rejecting the ones that added bloat so my design stayed clean.

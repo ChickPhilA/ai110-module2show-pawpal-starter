@@ -47,6 +47,20 @@ class Task:
     # avoid infinite recursion with Pet.tasks.
     pet: "Pet | None" = field(default=None, repr=False, compare=False)
 
+    @property
+    def end_time(self) -> str:
+        """When the task finishes, as "HH:MM" (start_time + duration).
+
+        Falls back to start_time if the start can't be parsed, and wraps
+        around midnight so a late-night task doesn't produce an invalid hour.
+        """
+        try:
+            hours, minutes = (int(part) for part in self.start_time.split(":"))
+        except (ValueError, AttributeError):
+            return self.start_time
+        total = (hours * 60 + minutes + self.duration_minutes) % (24 * 60)
+        return f"{total // 60:02d}:{total % 60:02d}"
+
     def mark_complete(self) -> None:
         """Mark this task as completed.
 

@@ -1,11 +1,22 @@
+from datetime import date, time
+
 import streamlit as st
 
-from pawpal_system import Owner, Pet, Task, Priority
+from pawpal_system import Owner, Pet, Task, Priority, Frequency, Scheduler
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 # Translate the UI's priority labels into the backend Priority enum.
 PRIORITY_MAP = {"low": Priority.LOW, "medium": Priority.MEDIUM, "high": Priority.HIGH}
+
+# Translate the UI's frequency labels into the backend Frequency enum. "Once"
+# is first (and the default) so a normal task simply completes and stays done;
+# daily/weekly are an explicit opt-in that spawns the next occurrence.
+FREQUENCY_MAP = {
+    "once": Frequency.ONCE,
+    "daily": Frequency.DAILY,
+    "weekly": Frequency.WEEKLY,
+}
 
 # Persist a single Owner across reruns. Streamlit reruns this script top to
 # bottom on every interaction, so we only create the Owner if the session
@@ -88,6 +99,18 @@ else:
     with col3:
         priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
 
+    # Let the owner pick when the task should start and which day it's due.
+    # st.time_input returns a datetime.time (formatted to the "HH:MM" string
+    # the backend expects); st.date_input returns a date the Task uses directly.
+    time_col, date_col, freq_col = st.columns(3)
+    with time_col:
+        start_time = st.time_input("Start time", value=time(8, 0))
+    with date_col:
+        due_date = st.date_input("Due date", value=date.today())
+    with freq_col:
+        # "Once" first so it's the default: the task completes and stays done.
+        frequency = st.selectbox("Repeats", ["once", "daily", "weekly"])
+
     if st.button("Add task"):
         # Find the chosen pet and hand the data to Pet.add_task() from Phase 2.
         pet = next(p for p in owner.pets if p.name == selected_pet_name)
@@ -96,30 +119,90 @@ else:
                 name=task_title,
                 duration_minutes=int(duration),
                 priority=PRIORITY_MAP[priority],
+                start_time=start_time.strftime("%H:%M"),
+                due_date=due_date,
+                frequency=FREQUENCY_MAP[frequency],
             )
         )
         st.success(f"Added '{task_title}' for {selected_pet_name}!")
 
-    # Display current tasks by reading straight from the objects. Each pending
-    # task gets a "Done" button; completing a DAILY/WEEKLY task automatically
-    # spawns its next occurrence (with an advanced due date).
+    # Display current tasks in a filterable, sorted table. Completing a
+    # DAILY/WEEKLY task automatically spawns its next occurrence (with an
+    # advanced due date) via the picker below the table.
     all_tasks = owner.get_all_tasks(include_completed=True)
     if all_tasks:
-        st.write("Current tasks:")
-        for index, task in enumerate(all_tasks):
-            info_col, action_col = st.columns([4, 1])
-            with info_col:
-                mark = "~~" if task.completed else ""
-                st.markdown(
-                    f"{mark}**{task.name}** ({task.duration_minutes} min) "
-                    f"[{task.priority.name.lower()}] for {task.pet.name} "
-                    f"- due {task.due_date} @ {task.start_time}{mark}"
+        st.markdown("#### Your tasks")
+
+        # --- Filters, powered by the Scheduler's filter helpers ---
+        filter_col, status_col = st.columns(2)
+        with filter_col:
+            pet_filter = st.selectbox(
+                "Filter by pet", ["All pets"] + [p.name for p in owner.pets]
+            )
+        with status_col:
+            status_filter = st.radio(
+                "Filter by status", ["All", "Pending", "Done"], horizontal=True
+            )
+
+        # Narrow the task set with the Scheduler's filter methods, then order it
+        # chronologically so it reads like a real daily schedule.
+        tasks = all_tasks
+        if pet_filter != "All pets":
+            tasks = Scheduler.filter_by_pet(tasks, pet_filter)
+        if status_filter == "Pending":
+            tasks = Scheduler.filter_by_status(tasks, completed=False)
+        elif status_filter == "Done":
+            tasks = Scheduler.filter_by_status(tasks, completed=True)
+        tasks = Scheduler.sort_by_time(tasks)
+
+        # Surface any timing conflicts among the pending tasks currently shown.
+        visible_pending = Scheduler.filter_by_status(tasks, completed=False)
+        for warning in Scheduler.conflict_warnings(visible_pending):
+            st.warning(warning)
+
+        if tasks:
+            rows = [
+                {
+                    "Status": "✅ Done" if task.completed else "⏳ Pending",
+                    "Task": task.name,
+                    "Pet": task.pet.name,
+                    "Priority": task.priority.name.capitalize(),
+                    "Time": f"{task.start_time}–{task.end_time}",
+                    "Duration": f"{task.duration_minutes} min",
+                    "Due": str(task.due_date),
+                    "Repeats": task.frequency.name.capitalize(),
+                }
+                for task in tasks
+            ]
+            st.table(rows)
+            st.success(
+                f"Showing {len(tasks)} task(s): "
+                f"{len(visible_pending)} pending, "
+                f"{len(tasks) - len(visible_pending)} done."
+            )
+        else:
+            st.info("No tasks match these filters.")
+
+        # --- Mark a task complete (st.table is read-only, so use a picker) ---
+        pending_all = owner.get_all_tasks(include_completed=False)
+        if pending_all:
+            st.markdown("**Mark a task done**")
+            # Index-prefixed labels stay unique even if two tasks share a name,
+            # so the selectbox can always map back to the right Task object.
+            labels = {
+                f"{position}. {task.name} · {task.pet.name} · "
+                f"{task.due_date} {task.start_time}": task
+                for position, task in enumerate(
+                    Scheduler.sort_by_time(pending_all), start=1
                 )
-            with action_col:
-                if task.completed:
-                    st.caption("✅ done")
-                elif st.button("Done", key=f"done_{index}"):
-                    task.mark_complete()
+            }
+            pick_col, button_col = st.columns([4, 1])
+            with pick_col:
+                choice = st.selectbox("Task to complete", list(labels.keys()))
+            with button_col:
+                st.write("")  # spacer to align the button with the selectbox
+                if st.button("Mark done"):
+                    labels[choice].mark_complete()
                     st.rerun()
     else:
         st.info("No tasks yet. Add one above.")
